@@ -54,22 +54,29 @@ module.exports = function () {
             var parsedCur = parseTime(week[curDay] + ' ' + curHour + ':' + curMin + '+0');
             var diffMin = parsedCur - moment.date;
             var diff = getTimeFromMinutes(diffMin);
-            var str = 'До ограбления ';
-            if (diff.days != 0) {
-                str = str + 'остался ' + diff.days + ' день ';
-            } else {
-                str = str + 'осталось ';
-            }
-            if (diff.hours != 0) {
-                str = str + diff.hours + ' часов ';
-            }
-            str = str + diff.minutes + ' минут';
 
+            var isLeft = true;
+            var str = 'До ограбления ';
+            var decl = getDeclensionOfNouns(diff.days, 'days', isLeft);
+            if (decl) {
+                isLeft = false;
+                str += decl;
+            }
+            decl = getDeclensionOfNouns(diff.hours, 'hours', isLeft);
+            if (decl) {
+                isLeft = false;
+                str += decl;
+            }
+            str += getDeclensionOfNouns(diff.minutes, 'minutes', isLeft);
             return str;
         }
 
     };
 };
+
+function getCorrectNum(number) {
+    return number < 10 ? '0' + number : number;
+}
 
 function getTimeFromMinutes(minutes) {
     var day = 24 * 60;
@@ -97,15 +104,25 @@ function parseTime(strTime) {
     return time;
 }
 
-function getCurrentTime() {
-    var currentMoment = new Date();
-    return {
-        days: currentMoment.getUTCDay(),
-        hours: currentMoment.getUTCHours(),
-        minutes: currentMoment.getMinutes()
+function getDeclensionOfNouns(noun, typeNoun, isLeft) {
+    var types = {
+        days: [' день ', ' дней ', ' дня '],
+        hours: [' час ', ' часов ', ' часа '],
+        minutes: [' минута ', ' минут ', ' минуты ']
     };
-}
-
-function getCorrectNum(number) {
-    return number < 10 ? '0' + number : number;
+    var declensionLeft = ['остался ', 'осталось ', 'осталась '];
+    var result = '';
+    if (!noun) {
+        return result;
+    }
+    var declLeft = isLeft ? declensionLeft[1] : '';
+    if (noun % 10 == 1 && noun != 11) {
+        declLeft = isLeft ? (typeNoun == 'minutes' ? declensionLeft[2] : declensionLeft[0]) : '';
+        result = declLeft + noun + types[typeNoun][0];
+    } else if ((noun % 10 == 0) || (noun > 10 && noun < 15) || noun % 10 > 4) {
+        result = declLeft + noun + types[typeNoun][1];
+    } else {
+        result = declLeft + noun + types[typeNoun][2];
+    }
+    return result;
 }
