@@ -8,13 +8,16 @@ module.exports = function () {
             return parseTime(this.format('%DD %HH:%MM+0'));
         },
         set date (minutes) {
+            if (typeof minutes == 'string') {
+                minutes = parseTime(minutes);
+            }
             this.dates = getTimeFromMinutes(minutes);
         },
 
         dates: {},
 
         // А здесь часовой пояс
-        timezone: 5,
+        timezone: 0,
 
         // Выводит дату в переданном формате
         format: function (pattern) {
@@ -30,10 +33,10 @@ module.exports = function () {
             }
             days = days == -1 ? week[week.length - 1] : week[days];
             pattern = pattern.replace(/%DD/g, days);
-            hours = hours < 10 ? '0' + hours : hours;
+            hours = getCorrectNum(hours);
             pattern = pattern.replace(/%HH/g, hours);
             var minutes = this.dates.minutes;
-            minutes = minutes < 10 ? '0' + minutes : minutes;
+            minutes = getCorrectNum(minutes);
             pattern = pattern.replace(/%MM/g, minutes);
             return pattern;
         },
@@ -41,11 +44,15 @@ module.exports = function () {
         // Возвращает кол-во времени между текущей датой и переданной `moment`
         // в человекопонятном виде
         fromMoment: function (moment) {
-            var currentMoment = new Date();
-            var curMin = currentMoment.getMinutes();
-            var curHour = currentMoment.getUTCHours();
-            var curDay = currentMoment.getUTCDay();
-            var diffMin = moment.date - parseTime(curDay + ' ' + curHour + ':' + curMin + '+0');
+            var currentMoment = this.dates;
+            var curMin = currentMoment.minutes;
+            curMin = getCorrectNum(curMin);
+            var curHour = currentMoment.hours;
+            curHour = getCorrectNum(curHour);
+            var curDay = currentMoment.days;
+
+            var parsedCur = parseTime(week[curDay] + ' ' + curHour + ':' + curMin + '+0');
+            var diffMin = parsedCur - moment.date;
             var diff = getTimeFromMinutes(diffMin);
             var str = 'До ограбления ';
             if (diff.days != 0) {
@@ -57,9 +64,10 @@ module.exports = function () {
                 str = str + diff.hours + ' часов ';
             }
             str = str + diff.minutes + ' минут';
-            console.log(str);
+
             return str;
         }
+
     };
 };
 
@@ -87,4 +95,17 @@ function parseTime(strTime) {
     var timezone = parseInt(zone.substr(1)) * sign;
     var time = minutes + 60 * (timezone + hours + 24 * day);
     return time;
+}
+
+function getCurrentTime() {
+    var currentMoment = new Date();
+    return {
+        days: currentMoment.getUTCDay(),
+        hours: currentMoment.getUTCHours(),
+        minutes: currentMoment.getMinutes()
+    };
+}
+
+function getCorrectNum(number) {
+    return number < 10 ? '0' + number : number;
 }

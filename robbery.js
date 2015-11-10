@@ -22,6 +22,10 @@ module.exports.getAppropriateMoment = function (json, minDuration, workingHours)
 
     // 3. И записываем в appropriateMoment
     appropriateMoment.date = intersection[0];
+
+    var timezoneBank = workingHours.from.substr(5);
+    appropriateMoment.timezone = getTimeZone(timezoneBank) * -1;
+
     return appropriateMoment;
 };
 
