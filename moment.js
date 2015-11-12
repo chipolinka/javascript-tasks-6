@@ -8,10 +8,12 @@ module.exports = function () {
             return parseTime(this.format('%DD %HH:%MM+0'));
         },
         set date (minutes) {
-            if (typeof minutes == 'string') {
-                minutes = parseTime(minutes);
+            if (minutes) {
+                if (typeof minutes == 'string') {
+                    minutes = parseTime(minutes);
+                }
+                this.dates = getTimeFromMinutes(minutes);
             }
-            this.dates = getTimeFromMinutes(minutes);
         },
 
         dates: {},
@@ -21,6 +23,9 @@ module.exports = function () {
 
         // Выводит дату в переданном формате
         format: function (pattern) {
+            if (!Object.keys(this.dates).length) {
+                return 'Ограбление не состоится!';
+            }
             var days = this.dates.days;
             var hours = this.dates.hours + this.timezone;
             if (hours >= 24) {
@@ -57,17 +62,24 @@ module.exports = function () {
 
             var isLeft = true;
             var str = 'До ограбления ';
-            var decl = getDeclensionOfNouns(diff.days, 'days', isLeft);
+            var decl = getDeclensionOfNouns(diff.days, [' день ', ' дней ', ' дня '], isLeft);
             if (decl) {
                 isLeft = false;
                 str += decl;
             }
-            decl = getDeclensionOfNouns(diff.hours, 'hours', isLeft);
+            decl = getDeclensionOfNouns(diff.hours, [' час ', ' часов ', ' часа '], isLeft);
             if (decl) {
                 isLeft = false;
                 str += decl;
             }
-            str += getDeclensionOfNouns(diff.minutes, 'minutes', isLeft);
+            decl = getDeclensionOfNouns(diff.minutes, [' минута ', ' минут ', ' минуты '], isLeft);
+            if (decl) {
+                isLeft = false;
+                str += decl;
+            }
+            if (isLeft) {
+                return 'Ограбление уже идёт!';
+            }
             return str;
         }
 
@@ -104,12 +116,7 @@ function parseTime(strTime) {
     return time;
 }
 
-function getDeclensionOfNouns(noun, typeNoun, isLeft) {
-    var types = {
-        days: [' день ', ' дней ', ' дня '],
-        hours: [' час ', ' часов ', ' часа '],
-        minutes: [' минута ', ' минут ', ' минуты ']
-    };
+function getDeclensionOfNouns(noun, declensions, isLeft) {
     var declensionLeft = ['остался ', 'осталось ', 'осталась '];
     var result = '';
     if (!noun) {
@@ -117,12 +124,13 @@ function getDeclensionOfNouns(noun, typeNoun, isLeft) {
     }
     var declLeft = isLeft ? declensionLeft[1] : '';
     if (noun % 10 == 1 && noun != 11) {
-        declLeft = isLeft ? (typeNoun == 'minutes' ? declensionLeft[2] : declensionLeft[0]) : '';
-        result = declLeft + noun + types[typeNoun][0];
+        var isFemGender = declensions[0].charAt(declensions[0] - 2) == 'а';
+        declLeft = isLeft ? (isFemGender ? declensionLeft[2] : declensionLeft[0]) : '';
+        result = declLeft + noun + declensions[0];
     } else if ((noun % 10 == 0) || (noun > 10 && noun < 15) || noun % 10 > 4) {
-        result = declLeft + noun + types[typeNoun][1];
+        result = declLeft + noun + declensions[1];
     } else {
-        result = declLeft + noun + types[typeNoun][2];
+        result = declLeft + noun + declensions[2];
     }
     return result;
 }
